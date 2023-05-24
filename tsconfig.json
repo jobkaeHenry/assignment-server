@@ -1,0 +1,14 @@
+{
+  "ts-node": { "files": true },
+  "compilerOptions": {
+    "typeRoots": ["./node_modules/@types", "@types"],
+    "target": "es6",
+    "module": "commonjs",
+    "outDir": "./dist",
+    "rootDir": ".",
+    "strict": true,
+    "moduleResolution": "node",
+    "esModuleInterop": true,
+    "jsx": "react"
+  }
+}
