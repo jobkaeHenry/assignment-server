@@ -38,7 +38,8 @@ export const addCartItems = async (
     return next(new HttpError("존재하지 않는 아이템입니다", 404));
   }
 
-  if (ActualUser.cartItems.findIndex((e) => e!.itemInfo!.toString()) > -1) {
+  if (ActualUser.cartItems.findIndex((e) => e!.itemInfo!.toString()===itemId) > -1) {
+    console.log("🚀 ~ file: cartItems-controller.ts:42 ~ ActualUser.cartItems.findIndex((e) => e!.itemInfo!.toString()):", ActualUser.cartItems.findIndex((e) => e!.itemInfo!.toString()))
     return next(new HttpError("이미 존재하는 아이템입니다", 400));
   }
 
