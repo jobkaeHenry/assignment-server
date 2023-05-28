@@ -9,13 +9,13 @@ import dotenv from "dotenv";
 dotenv.config();
 const JWT_SECRET_KEY = process.env.JWT_SECRET_KEY;
 
+
 export const upgradeUser = async (
   req: Request,
   res: Response,
   next: NextFunction
 ) => {
-  const  userId  = req.userData?.userId;
-  console.log(userId)
+  const userId = req.userData?.userId;
   let existingUser;
   try {
     existingUser = await User.findOne({ _id: userId });
@@ -27,14 +27,15 @@ export const upgradeUser = async (
     const error = new HttpError("존재하지 않는 유저입니다", 404);
     return next(error);
   }
-  if(existingUser.isSeller){
+  if (existingUser.isSeller) {
     const error = new HttpError("이미 셀러입니다", 403);
     return next(error);
-  }if(!existingUser.isSeller){
-    existingUser.isSeller = true
+  }
+  if (!existingUser.isSeller) {
+    existingUser.isSeller = true;
     try {
       await existingUser.save();
-      res.status(201)
+      res.status(201);
     } catch (err) {
       const error = new HttpError("유저 정보 업데이트 실패", 500);
       return next(error);
@@ -77,6 +78,7 @@ export const signUp = async (
     email,
     password: hashedPassword,
     userName,
+    isSeller: false,
     cartItems: [],
     refreshToken: "",
   });
@@ -96,6 +98,7 @@ export const signUp = async (
     userName: createdUser.userName,
     accessToken,
     refreshToken,
+    isSeller: false,
   });
 };
 
@@ -149,6 +152,7 @@ export const login = async (
   res.status(200).json({
     userId: existingUser.id,
     userName: existingUser.userName,
+    isSeller:existingUser.isSeller,
     accessToken,
     refreshToken,
   });
@@ -160,7 +164,7 @@ export const tokenRefresh = async (
   next: NextFunction
 ) => {
   const { refreshToken } = req.body;
-
+  console.log('리프레시')
   //@ts-expect-error
   jwt.verify(refreshToken, JWT_SECRET_KEY as Secret, async (err, decoded) => {
     if (err) {
@@ -202,3 +206,25 @@ export const tokenRefresh = async (
     }
   });
 };
+
+export const getUserInfoByToken = async(  req: Request,
+  res: Response,
+  next: NextFunction)=>{
+    const userId = req.userData?.userId;
+    let existingUser;
+    try {
+      existingUser = await User.findOne({ _id: userId });
+    } catch (err) {
+      const error = new HttpError("유저찾기 실패", 500);
+      return next(error);
+    }
+    if (!existingUser) {
+      const error = new HttpError("존재하지 않는 유저입니다", 404);
+      return next(error);
+    }
+    res.status(200).json({
+      userId: existingUser.id,
+      userName: existingUser.userName,
+      isSeller:existingUser.isSeller,
+    });
+}

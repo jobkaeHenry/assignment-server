@@ -29,7 +29,7 @@ app.use(ExpressMongoSanitize());
 
 app.use(
   cors({
-    origin: "http://localhost:3000",
+    origin: ["http://localhost:5173","http://plugo-assignment.s3-website.ap-northeast-2.amazonaws.com/"],
     credentials: true,
     methods: ["GET", "POST", "PUT" ,"DELETE"],
   })
@@ -54,6 +54,7 @@ mongoose
   )
   .then(() => {
     // 서버를 시작한다는 뜻
+    console.log('듣는중')
     app.listen(_port);
   })
   .catch((err) => {

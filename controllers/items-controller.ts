@@ -1,4 +1,4 @@
-import { NextFunction,Request,Response } from "express";
+import { NextFunction, Request, Response } from "express";
 import mongoose from "mongoose";
 import HttpError from "../models/error";
 import { Items } from "../models/Items";
@@ -8,7 +8,7 @@ export const createItem = async (
   res: Response,
   next: NextFunction
 ) => {
-  const { title,description,price,image } = req.body;
+  const { title, description, price, image } = req.body;
 
   const userId = req.userData?.userId;
 
@@ -33,8 +33,8 @@ export const createItem = async (
   if (!ActualUser) {
     return next(new HttpError("존재하지 않는 유저입니다", 403));
   }
-  if(!ActualUser.isSeller){
-    return next(new HttpError('셀러가 아닙니다', 403))
+  if (!ActualUser.isSeller) {
+    return next(new HttpError("셀러가 아닙니다", 403));
   }
   // 실존할 경우
   try {
@@ -46,7 +46,7 @@ export const createItem = async (
     await ActualUser.save({ session });
     await session.commitTransaction();
   } catch (err) {
-    console.log(err)
+    console.log(err);
     const error = new HttpError("저장에 실패했습니다", 500);
     return next(error);
   }
@@ -74,23 +74,25 @@ export const deleteItemById = async (
     return next(new HttpError("존재하지 않는 아이템입니다", 404));
   }
   // 권한확인
-  let user
-  try{
-    user = User.findById(userId)
-  }catch{
+  let user;
+  try {
+    user = User.findById(userId);
+  } catch {
     return next(new HttpError("존재하지 않는 유저입니다", 403));
   }
+    // @ts-expect-error
+  console.log(targetCartItems.seller.id,userId)
   // @ts-expect-error
   if (targetCartItems.seller.id !== userId) {
-    return next(new HttpError("삭제 권한이 없습니다", 401));
+    return next(new HttpError("삭제 권한이 없습니다", 403));
   } else
     try {
       const session = await mongoose.startSession();
       session.startTransaction();
       await targetCartItems.remove({ session });
-    // @ts-expect-error
+      // @ts-expect-error
       targetCartItems.seller.items.pull(targetCartItems);
-    // @ts-expect-error
+      // @ts-expect-error
       await targetCartItems.seller.save({ session });
       session.commitTransaction();
     } catch (error) {
@@ -118,8 +120,14 @@ export const getItemsById = async (
     return next(error);
   }
   const { seller, ...other } = item.toObject({ getters: true });
-  // @ts-expect-error
-  const result = { ...other, seller: item.seller.userName, sellerId:item.seller._id};
+
+  const result = {
+    ...other,
+    // @ts-expect-error
+    seller: item.seller.userName,
+    // @ts-expect-error
+    sellerId: item.seller._id,
+  };
   res.json(result);
 };
 
@@ -129,18 +137,47 @@ export const getItemsByUserId = async (
   res: Response,
   next: NextFunction
 ) => {
-  const userId = req.userData.userId
-  console.log(userId)
+  const userId = req.params.id;
+
   let findCartItemsByUserId;
   try {
-    findCartItemsByUserId = await Items.find({ seller: userId })
+    findCartItemsByUserId = await Items.find({ seller: userId });
   } catch (err) {
     next(new HttpError("아이템을 찾지 못했습니다", 500));
   }
   if (!findCartItemsByUserId) {
     next(new HttpError("존재하지 않는 아이템입니다", 404));
   } else
-    return res.status(200).json(
-      findCartItemsByUserId.map((Items) => Items.toObject({ getters: true }))
-    );
+    return res
+      .status(200)
+      .json(
+        findCartItemsByUserId.map((Items) => Items.toObject({ getters: true }))
+      );
+};
+
+export const getItemsByQuery = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  const page = Number(req.query.pageNum)||1;
+  const number = Number(req.query.num)||5;
+
+  let limitedItems;
+  if (!page || !number) {
+    next(new HttpError("잘못된 파라미터입니다", 400));
+  } else
+    try {
+      limitedItems = await Items.find({})
+        .skip((page-1) * number)
+        .limit(number);
+    } catch (err) {
+      next(new HttpError("아이템을 찾지 못했습니다", 500));
+    }
+  if (!limitedItems) {
+    next(new HttpError("존재하지 않는 아이템입니다", 404));
+  } else
+    return res
+      .status(200)
+      .json(limitedItems.map((Items) => Items.toObject({ getters: true })));
 };

@@ -18,7 +18,6 @@ const authChecker = (req: Request, res: Response, next: NextFunction) => {
       token,
       JWT_SECRET_KEY as Secret
     ) as TokenPayload;
-
     req.userData = { userId: decodedToken.userId };
     next();
   } catch (err) {

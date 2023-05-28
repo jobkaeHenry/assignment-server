@@ -1,5 +1,4 @@
 import { Request, Response, NextFunction } from "express";
-import mongoose from "mongoose";
 import { Items } from "../models/Items";
 import HttpError from "../models/error";
 import { User } from "../models/user";
@@ -17,7 +16,7 @@ export const addCartItems = async (
 
   let ActualUser;
   try {
-    ActualUser = await User.findById(userId);
+    ActualUser = await User.findById(userId).populate("cartItems");
   } catch (err) {
     return next(
       new HttpError("유저를 검증하는 과정에서 오류가 발생했습니다", 500)
@@ -38,7 +37,11 @@ export const addCartItems = async (
   if (!itemToAdd) {
     return next(new HttpError("존재하지 않는 아이템입니다", 404));
   }
-  // 실존할 경우
+
+  if (ActualUser.cartItems.findIndex((e) => e!.itemInfo!.toString()) > -1) {
+    return next(new HttpError("이미 존재하는 아이템입니다", 400));
+  }
+
   try {
     // @ts-expect-error
     ActualUser.cartItems.push({ itemInfo: itemToAdd, quantity: 1 });
@@ -83,24 +86,37 @@ export const getCartItemsByUserId = async (
   next: NextFunction
 ) => {
   const userId = req.userData.userId;
+          //@ts-expect-error
   let user;
   try {
-    user = await User.findById(userId).populate('cartItems')
+    user = await User.findById(userId).populate("cartItems");
   } catch {
     next(new HttpError("유저를 찾지 못했습니다", 500));
   }
   if (!user) {
     next(new HttpError("존재하지 않는 유저입니다", 404));
   } else {
-    const cartItems = await Promise.all(user.cartItems.map(async (cartItem) => {
-      const itemId = cartItem.itemInfo;
-    
-      const itemInfo = await Items.findOne({_id: itemId});
-    
-      const quantity = cartItem.quantity;
-      return {itemInfo, quantity};
-    }));
-    return res.status(200).json(cartItems);
+    const cartItems = await Promise.all(
+      user.cartItems.map(async (cartItem) => {
+        const itemId = cartItem.itemInfo;
+
+        const itemInfo = await Items.findOne({ _id: itemId });
+
+        if (!itemInfo) {
+          //@ts-expect-error
+          if (user) {
+            await user!.cartItems.pull(cartItem);
+            await user!.save();
+            return null;
+          }
+        }else{
+
+        const quantity = cartItem.quantity;
+        return { itemInfo, quantity }}
+      })
+    );
+
+    return res.status(200).json(cartItems.filter((e)=>e));
   }
 };
 
@@ -111,30 +127,34 @@ export const deleteCartItemsById = async (
 ) => {
   const CartItemsId = req.params.id;
   const userId = req.userData.userId;
-  let user
-    try {
-      user = await User.findById(userId).populate('cartItems')
-    } catch (error) {
-      return next(new HttpError("유저를 조회하지 못했습니다", 500));
-    }
-    if(!user){
-      return  next(new HttpError("존재하지 않는 유저입니다", 404));
-    }
-      else if (user.id !== userId) {
-    return next(new HttpError("삭제 권한이 없습니다", 401));
-  } 
-  let newCartList = user.cartItems.filter((e:any)=>{
-    e._id === CartItemsId
-  })
-  if(newCartList.length === user.cartItems.length){
-    return next(new HttpError("존재하지 않는 아이템 입니다", 400));
+  let user;
+  try {
+    user = await User.findById(userId).populate("cartItems");
+  } catch (error) {
+    return next(new HttpError("유저를 조회하지 못했습니다", 500));
   }
-  // 권한확인
-    try {
-      user.cartItems = newCartList
-      user.save()
-    } catch (error) {
-      return next(new HttpError("삭제에 실패했습니다", 500));
-    }
-  res.status(201).json({ message: "삭제가 완료되었습니다" });
+  if (!user) {
+    return next(new HttpError("존재하지 않는 유저입니다", 404));
+  } else if (user.id !== userId) {
+    return next(new HttpError("삭제 권한이 없습니다", 401));
+  }
+
+  const matchedCartItemIndex = user.cartItems.filter(
+    (item) => item!.itemInfo!.toString() !== CartItemsId
+  );
+
+  if (matchedCartItemIndex.length === user.cartItems.length) {
+    return next(new HttpError("일치하는 카트 아이템을 찾지 못했습니다", 404));
+  }
+
+  // 일치하는 항목 삭제
+  user.cartItems = matchedCartItemIndex;
+
+  try {
+    await user.save();
+  } catch (error) {
+    return next(new HttpError("카트 아이템을 삭제하지 못했습니다", 500));
+  }
+
+  res.status(200).json({ message: "카트 아이템이 성공적으로 삭제되었습니다" });
 };
