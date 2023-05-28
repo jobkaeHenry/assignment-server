@@ -111,7 +111,6 @@ export const getCartItemsByUserId = async (
             return null;
           }
         }else{
-
         const quantity = cartItem.quantity;
         return { itemInfo, quantity }}
       })
