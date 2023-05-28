@@ -80,8 +80,8 @@ export const deleteItemById = async (
   } catch {
     return next(new HttpError("존재하지 않는 유저입니다", 403));
   }
-    // @ts-expect-error
-  console.log(targetCartItems.seller.id,userId)
+  // @ts-expect-error
+  console.log(targetCartItems.seller.id, userId);
   // @ts-expect-error
   if (targetCartItems.seller.id !== userId) {
     return next(new HttpError("삭제 권한이 없습니다", 403));
@@ -160,8 +160,8 @@ export const getItemsByQuery = async (
   res: Response,
   next: NextFunction
 ) => {
-  const page = Number(req.query.pageNum)||1;
-  const number = Number(req.query.num)||5;
+  const page = Number(req.query.pageNum) || 1;
+  const number = Number(req.query.num) || 5;
 
   let limitedItems;
   if (!page || !number) {
@@ -169,7 +169,7 @@ export const getItemsByQuery = async (
   } else
     try {
       limitedItems = await Items.find({})
-        .skip((page-1) * number)
+        .skip((page - 1) * number)
         .limit(number);
     } catch (err) {
       next(new HttpError("아이템을 찾지 못했습니다", 500));
@@ -180,4 +180,23 @@ export const getItemsByQuery = async (
     return res
       .status(200)
       .json(limitedItems.map((Items) => Items.toObject({ getters: true })));
+};
+
+export const getAllItems = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  let foundedItems;
+  try {
+    foundedItems = await Items.find();
+  } catch (err) {
+    next(new HttpError("아이템을 찾지 못했습니다", 500));
+  }
+  if (!foundedItems) {
+    next(new HttpError("존재하지 않는 아이템입니다", 404));
+  } else
+    return res
+      .status(200)
+      .json(foundedItems.map((Items) => Items.toObject({ getters: true })));
 };
