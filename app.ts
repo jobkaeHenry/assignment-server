@@ -29,7 +29,7 @@ app.use(ExpressMongoSanitize());
 
 app.use(
   cors({
-    origin: ["http://localhost:5173","http://plugo-assignment.s3-website.ap-northeast-2.amazonaws.com/"],
+    origin: ["http://localhost:5173","http://plugo-assignment.s3-website.ap-northeast-2.amazonaws.com"],
     credentials: true,
     methods: ["GET", "POST", "PUT" ,"DELETE"],
   })
