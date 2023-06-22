@@ -222,6 +222,10 @@ export const getUserInfoByToken = async(  req: Request,
       const error = new HttpError("존재하지 않는 유저입니다", 404);
       return next(error);
     }
+    if(!existingUser.userName){
+      existingUser.userName = `유저${String(new Date().getMilliseconds())}`
+      existingUser.save()
+    }
     res.status(200).json({
       userId: existingUser.id,
       userName: existingUser.userName,

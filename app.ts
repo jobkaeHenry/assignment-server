@@ -6,7 +6,7 @@ import helmet from "helmet";
 import mongoose from "mongoose";
 import dotenv from "dotenv";
 import cartItemsRoute from "./routers/cartItemsRoute";
-import ItemsRoute from './routers/ItemsRoute'
+import ItemsRoute from "./routers/ItemsRoute";
 import cors from "cors";
 import ExpressMongoSanitize from "express-mongo-sanitize";
 import apiLimiter from "./middleware/apiLimiter";
@@ -15,7 +15,7 @@ import apiLimiter from "./middleware/apiLimiter";
 // 환경변수사용
 dotenv.config();
 const mongoDB_PW = process.env.MONGO_DB_PW;
-const _port = 3000
+const _port = 3000;
 
 // express
 const app = express();
@@ -29,16 +29,19 @@ app.use(ExpressMongoSanitize());
 
 app.use(
   cors({
-    origin: ["http://localhost:5173","http://plugo-assignment.s3-website.ap-northeast-2.amazonaws.com"],
+    origin: [
+      "http://localhost:5173",
+      "http://jobkae-ecommerce.s3-website.ap-northeast-2.amazonaws.com",
+    ],
     credentials: true,
-    methods: ["GET", "POST", "PUT" ,"DELETE"],
+    methods: ["GET", "POST", "PUT", "DELETE"],
   })
 );
 
 // 오픈된 라우팅
 app.use("/cart", cartItemsRoute);
 app.use("/user", userRouter);
-app.use('/items',ItemsRoute)
+app.use("/items", ItemsRoute);
 
 // 에러핸들러
 app.use(((err, req, res, next) => {
@@ -54,7 +57,7 @@ mongoose
   )
   .then(() => {
     // 서버를 시작한다는 뜻
-    console.log('듣는중')
+    console.log("듣는중");
     app.listen(_port);
   })
   .catch((err) => {

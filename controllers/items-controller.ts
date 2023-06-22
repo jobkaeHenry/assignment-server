@@ -8,8 +8,7 @@ export const createItem = async (
   res: Response,
   next: NextFunction
 ) => {
-  const { title, description, price, image } = req.body;
-
+  const { title, description, price } = req.body;
   const userId = req.userData?.userId;
 
   //express-validator 추가하기
@@ -18,8 +17,11 @@ export const createItem = async (
     title,
     description,
     price,
-    image,
+    //@ts-expect-error 체크함
+    image: req.file.location,
   });
+
+
   // 유저가 실존하는지 검증
   let ActualUser;
   try {
@@ -46,7 +48,6 @@ export const createItem = async (
     await ActualUser.save({ session });
     await session.commitTransaction();
   } catch (err) {
-    console.log(err);
     const error = new HttpError("저장에 실패했습니다", 500);
     return next(error);
   }
