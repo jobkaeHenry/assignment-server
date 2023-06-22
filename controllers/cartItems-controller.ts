@@ -38,14 +38,64 @@ export const addCartItems = async (
     return next(new HttpError("존재하지 않는 아이템입니다", 404));
   }
 
-  if (ActualUser.cartItems.findIndex((e) => e!.itemInfo!.toString()===itemId) > -1) {
-    console.log("🚀 ~ file: cartItems-controller.ts:42 ~ ActualUser.cartItems.findIndex((e) => e!.itemInfo!.toString()):", ActualUser.cartItems.findIndex((e) => e!.itemInfo!.toString()))
+  if (
+    ActualUser.cartItems.findIndex((e) => e?.itemInfo?.toString() === itemId) >
+    -1
+  ) {
     return next(new HttpError("이미 존재하는 아이템입니다", 400));
   }
 
   try {
     // @ts-expect-error
     ActualUser.cartItems.push({ itemInfo: itemToAdd, quantity: 1 });
+    ActualUser.save();
+  } catch (err) {
+    console.log(err);
+    const error = new HttpError("저장에 실패했습니다", 500);
+    return next(error);
+  }
+  res.status(201).json({ id: itemToAdd.toObject({ getters: true })._id });
+};
+export const changeQuantityById = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  const { id } = req.params;
+  const { quantity } = req.body;
+  const userId = req.userData?.userId;
+
+  if (quantity <= 0 || isNaN(Number(quantity))) {
+    return next(new HttpError("유효하지 않은 값입니다", 400));
+  }
+
+  let ActualUser;
+  try {
+    ActualUser = await User.findById(userId).populate("cartItems");
+  } catch (err) {
+    return next(
+      new HttpError("유저를 검증하는 과정에서 오류가 발생했습니다", 500)
+    );
+  }
+
+  // 실존하지 않을경우
+  if (!ActualUser) {
+    return next(new HttpError("존재하지 않는 유저입니다", 403));
+  }
+
+  let itemToAdd;
+  try {
+    itemToAdd = await Items.findOne({ _id: id });
+  } catch {
+    return next(new HttpError("해당 아이템을 조회하지 못했습니다", 500));
+  }
+  if (!itemToAdd) {
+    return next(new HttpError("존재하지 않는 아이템입니다", 404));
+  }
+
+  try {
+    let index = ActualUser.cartItems.findIndex((e) => e!.itemInfo!.toString()=== id)
+    ActualUser.cartItems[index].quantity= quantity
     ActualUser.save();
   } catch (err) {
     console.log(err);
@@ -87,7 +137,7 @@ export const getCartItemsByUserId = async (
   next: NextFunction
 ) => {
   const userId = req.userData.userId;
-          //@ts-expect-error
+  //@ts-expect-error
   let user;
   try {
     user = await User.findById(userId).populate("cartItems");
@@ -106,17 +156,18 @@ export const getCartItemsByUserId = async (
         if (!itemInfo) {
           //@ts-expect-error
           if (user) {
-            await user!.cartItems.pull(cartItem);
-            await user!.save();
+            await user.cartItems.pull(cartItem);
+            await user.save();
             return null;
           }
-        }else{
-        const quantity = cartItem.quantity;
-        return { itemInfo, quantity }}
+        } else {
+          const quantity = cartItem.quantity;
+          return { itemInfo, quantity };
+        }
       })
     );
 
-    return res.status(200).json(cartItems.filter((e)=>e));
+    return res.status(200).json(cartItems.filter((e) => e));
   }
 };
 
