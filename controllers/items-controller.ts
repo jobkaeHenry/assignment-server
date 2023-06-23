@@ -3,6 +3,7 @@ import mongoose from "mongoose";
 import HttpError from "../models/error";
 import { Items } from "../models/Items";
 import { User } from "../models/user";
+import { deleteBucket } from "../middleware/s3Multer";
 export const createItem = async (
   req: Request,
   res: Response,
@@ -99,6 +100,7 @@ export const deleteItemById = async (
     } catch (error) {
       return next(new HttpError("삭제에 실패했습니다", 500));
     }
+    deleteBucket((targetCartItems.image).split('.com/')[1])
   res.status(201).json({ message: "삭제가 완료되었습니다" });
 };
 
